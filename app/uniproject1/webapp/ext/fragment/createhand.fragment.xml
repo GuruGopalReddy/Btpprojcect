@@ -1,0 +1,24 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+
+		<Dialog id="Create" resizable="true" draggable="true" title="Add New Entries">
+        <VBox>
+				<Label for="university_no" showColon="true" text="university_no" />
+				<Input id="university_no" placeholder="Enter university_no" />
+				<Label for="university_name" showColon="true" text="university_name" />
+				<Input id="university_name" placeholder="Enter university_name" />
+				<Label for="university_type" showColon="true" text="university_type" />
+				<Input id="university_type" placeholder="Enter university_type" />
+            
+   
+				<Button id="up"  core:require="{ handler:'uniproject1/ext/controller/Createhandler'}" 
+                press="handler.handlesave" text="Save"/>
+                <Button id="dis"  core:require="{ handler:'uniproject1/ext/controller/Createhandler'}" 
+                press="handler.handlediscard" text="Discard Details"/>
+			
+        </VBox>
+			
+		</Dialog>
+
+</core:FragmentDefinition>
+
+

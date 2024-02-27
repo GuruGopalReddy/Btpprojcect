@@ -1,0 +1,134 @@
+_schema-version: "3.1"
+ID: University
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: University-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: University-db
+  - name: uaa_University
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+  build-parameters:
+    builder: npm
+- name: University-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: University-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: University-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: University-destination-service
+    parameters:
+      content-target: true
+  - name: University_html_repo_host
+    parameters:
+      service-key:
+        name: University_html_repo_host-key
+  - name: uaa_University
+    parameters:
+      service-key:
+        name: uaa_University-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: university_University_html_repo_host
+          ServiceInstanceName: University-html5-app-host-service
+          ServiceKeyName: University_html_repo_host-key
+          sap.cloud.service: university
+        - Authentication: OAuth2UserTokenExchange
+          Name: university_uaa_University
+          ServiceInstanceName: University-xsuaa-service
+          ServiceKeyName: uaa_University-key
+          sap.cloud.service: university
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: University-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: University_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - uniproject1.zip
+      name: uniproject1
+      target-path: resources/
+- name: uniproject1
+  type: html5
+  path: app/uniproject1
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: University-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: University-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+            HTML5.ForwardAuthToken: true
+            Name: University-srv-api
+            ProxyType: Internet
+            Type: HTTP
+            URL: ~{srv-api/srv-url}
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: University-destination-service
+    service-plan: lite
+  requires:
+  - name: srv-api
+- name: University_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: University-html5-app-host-service
+    service-plan: app-host
+- name: uaa_University
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: University-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npx cds build --production
